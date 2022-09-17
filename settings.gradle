@@ -1,0 +1,7 @@
+rootProject.name = 'BrickCommands'
+
+include 'api'
+include 'common'
+include 'spigot-api'
+include 'minestom-api'
+

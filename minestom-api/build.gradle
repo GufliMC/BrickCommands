@@ -1,0 +1,12 @@
+repositories {
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    api project(':api')
+    api project(':common')
+
+    // platform dependency is provided
+    compileOnly 'com.github.Minestom:Minestom:-SNAPSHOT'
+    compileOnly 'org.slf4j:slf4j-api:1.7.36'
+}
