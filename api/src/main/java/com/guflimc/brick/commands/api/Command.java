@@ -1,11 +1,11 @@
 package com.guflimc.brick.commands.api;
 
-public interface Command {
+import com.guflimc.brick.commands.api.argument.CommandArgument;
+import com.guflimc.brick.commands.api.context.CommandExecutionContext;
 
-    String[] literals();
+import java.util.function.Consumer;
 
-    // TODO conditions
-
-    void call(CommandExecutionContext context);
+public record Command<S>(String[] literals, CommandArgument<S, ?>[] arguments,
+                         Consumer<CommandExecutionContext<S>> executor) {
 
 }
