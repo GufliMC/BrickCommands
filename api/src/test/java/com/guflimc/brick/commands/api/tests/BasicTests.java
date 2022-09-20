@@ -2,6 +2,7 @@ package com.guflimc.brick.commands.api.tests;
 
 import com.guflimc.brick.commands.api.CommandDispatcher;
 import com.guflimc.brick.commands.api.argument.types.NumberArgument;
+import com.guflimc.brick.commands.api.builder.CommandBuilder;
 import com.guflimc.brick.commands.api.tests.mock.MockSender;
 import org.junit.jupiter.api.Test;
 
@@ -19,13 +20,12 @@ public class BasicTests {
     @Test
     public void testRoot() {
         AtomicBoolean executed = new AtomicBoolean(false);
-        dispatcher.tree().register(b -> {
-            b.withLiterals("foo").withExecutor(ctx -> {
-                executed.set(true);
-            });
-        });
+        dispatcher.tree().register(
+                CommandBuilder.of("foo")
+                .withExecutor(ctx -> executed.set(true))
+                .build()
+        );
 
-        MockSender sender = new MockSender();
         dispatcher.dispatch(sender, "foo");
 
         assertTrue(executed.get());
@@ -40,7 +40,6 @@ public class BasicTests {
             });
         });
 
-        MockSender sender = new MockSender();
         dispatcher.dispatch(sender, "foo bar");
 
         assertTrue(executed.get());
@@ -55,7 +54,6 @@ public class BasicTests {
             });
         });
 
-        MockSender sender = new MockSender();
         dispatcher.dispatch(sender, "foo 15");
 
         assertEquals(15, value.get());
@@ -70,7 +68,6 @@ public class BasicTests {
             });
         });
 
-        MockSender sender = new MockSender();
         dispatcher.dispatch(sender, "foo bar 12");
 
         assertEquals(12, value.get());

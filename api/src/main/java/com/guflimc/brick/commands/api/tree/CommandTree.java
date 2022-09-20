@@ -2,13 +2,14 @@ package com.guflimc.brick.commands.api.tree;
 
 import com.guflimc.brick.commands.api.Command;
 import com.guflimc.brick.commands.api.argument.CommandArgumentSuggestion;
-import com.guflimc.brick.commands.api.CommandBuilder;
+import com.guflimc.brick.commands.api.builder.CommandBuilder;
 import com.guflimc.brick.commands.api.tree.node.Node;
 import com.guflimc.brick.commands.api.tree.node.NodeCommand;
 import com.guflimc.brick.commands.api.tree.node.NodeLiteral;
 
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class CommandTree<S> {
@@ -23,16 +24,10 @@ public class CommandTree<S> {
 
     //
 
-    private final static String SPACE_QUOTED = Pattern.quote(" ");
+    private final static Pattern ARGUMENT_REGEX = Pattern.compile("[^\\s\"']+|\"([^\"]*)\"|'([^']*)'");
 
     public void register(Command<S> command) {
         registerRecursive(command, 0, root);
-    }
-
-    public void register(Consumer<CommandBuilder<S>> consumer) {
-        CommandBuilder<S> builder = new CommandBuilder<>();
-        consumer.accept(builder);
-        register(builder.build());
     }
 
     private void registerRecursive(Command<S> command, int index, NodeLiteral node) {
@@ -61,7 +56,7 @@ public class CommandTree<S> {
      * @return The result of the parse
      */
     public Optional<ParseResult<S>> parse(String input) {
-        String[] in = input.split(SPACE_QUOTED);
+        String[] in = split(input);
 
         List<SearchResult<S>> search = new ArrayList<>();
         for (Node child : root.children()) {
@@ -69,26 +64,28 @@ public class CommandTree<S> {
         }
 
         if (search.isEmpty()) {
+            // TODO COMMAND DOES NOT EXIST
             return Optional.empty();
         }
 
-        search.sort(Comparator.comparingInt(sr -> sr.depth));
+        // We loop through all found, starting with the one with the most literals
+        search.sort(Comparator.comparingInt((SearchResult<S> sr) -> sr.depth).reversed());
 
         for (SearchResult<S> sr : search) {
             String[] args = Arrays.copyOfRange(in, sr.depth + 1, in.length);
             int diff = args.length - sr.node.command().arguments().length;
-            System.out.println(args.length + " vs " + sr.node.command().arguments().length);
-            System.out.println("depth: " + sr.depth);
-            System.out.println(diff);
             if (diff == 0) {
+                // Exact amount of arguments
                 return Optional.of(new ParseResult<>(sr.node, args, true));
             }
-            if (diff > 0) {
+            if (diff < 0) {
+                // best match but it doesn't have enough arguments
                 return Optional.of(new ParseResult<>(sr.node, args, false));
             }
         }
 
-        NodeCommand<S> node = search.get(search.size() - 1).node;
+        // best match but too many arguments
+        NodeCommand<S> node = search.get(0).node;
         String[] args = Arrays.copyOfRange(in, node.command().literals().length, in.length);
         return Optional.of(new ParseResult<>(node, args, false));
     }
@@ -107,6 +104,25 @@ public class CommandTree<S> {
         for (Node child : node.children()) {
             parseRecursive(input, index + 1, result, child);
         }
+    }
+
+    private String[] split(String input) {
+        List<String> matchList = new ArrayList<>();
+        Matcher matcher = ARGUMENT_REGEX.matcher(input);
+        while (matcher.find()) {
+            if (matcher.group(1) != null) {
+                // Add double-quoted string without the quotes
+                matchList.add(matcher.group(1));
+            } else if (matcher.group(2) != null) {
+                // Add single-quoted string without the quotes
+                matchList.add(matcher.group(2));
+            } else {
+                // Add unquoted word
+                matchList.add(matcher.group());
+            }
+        }
+
+        return matchList.toArray(String[]::new);
     }
 
     public List<CommandArgumentSuggestion> suggestions(String input) {
