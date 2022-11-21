@@ -51,7 +51,7 @@ public class AbstractCommandBuilder<S, R extends AbstractCommandBuilder<S, R>> {
         return thiz();
     }
 
-    public final Command<com.guflimc.brick.commands.api.tests.mock.MockSender> build() {
+    public final Command<S> build() {
         return new Command<>(literals, arguments.toArray(CommandArgument[]::new), executor);
     }
 
